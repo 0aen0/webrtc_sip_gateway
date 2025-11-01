@@ -1,0 +1,19 @@
+# Основные зависимости
+fastapi>=0.68.0
+uvicorn>=0.15.0
+websockets>=10.0
+python-multipart>=0.0.5
+
+sipy
+
+# GUI
+PyQt6>=6.4.0
+
+# Логирование
+loguru>=0.5.0
+
+# Аудио
+pyaudio>=0.2.11
+
+# Валидация
+pydantic>=1.8.0

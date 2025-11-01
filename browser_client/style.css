@@ -1,0 +1,505 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.phone-container {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    width: 450px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.status-panel {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-label {
+    font-weight: bold;
+    color: #555;
+    font-size: 14px;
+}
+
+.status {
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 12px;
+    min-width: 100px;
+    text-align: center;
+}
+
+.status.connected {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status.disconnected {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.sip-status {
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 12px;
+    min-width: 100px;
+    text-align: center;
+}
+
+.sip-status.registered {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.sip-status.unregistered {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.settings-panel {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+}
+
+.settings-panel h3 {
+    margin-bottom: 15px;
+    color: #333;
+    text-align: center;
+    font-size: 18px;
+}
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-row label {
+    width: 80px;
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+}
+
+.form-row input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.form-row input:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.form-buttons .control-btn {
+    flex: 1;
+    padding: 12px;
+}
+
+.call-info {
+    text-align: center;
+    margin: 20px 0;
+    padding: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    border: 2px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.call-info.incoming {
+    background: #fff3cd;
+    border-color: #ffc107;
+    animation: pulse 2s infinite;
+}
+
+.remote-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.call-duration {
+    font-size: 18px;
+    color: #666;
+    margin: 5px 0;
+    font-weight: 600;
+}
+
+.call-status {
+    font-size: 14px;
+    color: #007bff;
+    font-weight: 500;
+}
+
+.dial-panel {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+#phoneNumber {
+    flex: 1;
+    padding: 15px;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+}
+
+#phoneNumber:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.dtmf-keypad {
+    display: grid;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.keypad-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.dtmf-btn {
+    flex: 1;
+    padding: 18px;
+    font-size: 20px;
+    font-weight: bold;
+    border: 2px solid #dee2e6;
+    background: white;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 60px;
+}
+
+.dtmf-btn:hover {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.dtmf-btn:active {
+    transform: translateY(0);
+}
+
+.call-controls {
+    display: flex;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.control-btn {
+    flex: 1;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 50px;
+}
+
+.control-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.control-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.control-btn.register {
+    background: #28a745;
+    color: white;
+}
+
+.control-btn.unregister {
+    background: #ffc107;
+    color: #212529;
+}
+
+.control-btn.answer {
+    background: #28a745;
+    color: white;
+}
+
+.control-btn.hangup {
+    background: #dc3545;
+    color: white;
+}
+
+.control-btn.dial {
+    background: #007bff;
+    color: white;
+}
+
+.control-btn.clear {
+    background: #6c757d;
+    color: white;
+    padding: 10px 15px;
+    font-size: 14px;
+    flex: none;
+}
+
+.log-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+}
+
+.log-level-select {
+    padding: 8px 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    min-width: 120px;
+}
+
+.log-level-select:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+.log-panel {
+    margin-top: 20px;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.log-header h3 {
+    color: #333;
+    margin: 0;
+    font-size: 16px;
+}
+
+.log-container {
+    height: 200px;
+    overflow-y: auto;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #e9ecef;
+    line-height: 1.4;
+}
+
+.log-entry {
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    word-break: break-word;
+    border-left: 3px solid transparent;
+}
+
+.log-entry.debug {
+    background: #2d3748;
+    color: #a0aec0;
+    border-left-color: #718096;
+}
+
+.log-entry.info {
+    background: #2a4365;
+    color: #90cdf4;
+    border-left-color: #3182ce;
+}
+
+.log-entry.warning {
+    background: #744210;
+    color: #faf089;
+    border-left-color: #d69e2e;
+}
+
+.log-entry.error {
+    background: #742a2a;
+    color: #fc8181;
+    border-left-color: #e53e3e;
+}
+
+/* Анимации */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.call-info {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Полоса прокрутки */
+.log-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.log-container::-webkit-scrollbar-track {
+    background: #2d3748;
+    border-radius: 4px;
+}
+
+.log-container::-webkit-scrollbar-thumb {
+    background: #4a5568;
+    border-radius: 4px;
+}
+
+.log-container::-webkit-scrollbar-thumb:hover {
+    background: #718096;
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+    .phone-container {
+        padding: 20px;
+        margin: 10px;
+    }
+    
+    .status-panel {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .status-item {
+        justify-content: space-between;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .form-row label {
+        width: auto;
+        margin-bottom: 5px;
+    }
+    
+    .call-controls {
+        flex-direction: column;
+    }
+    
+    .log-controls {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .dtmf-btn {
+        padding: 15px;
+        min-height: 50px;
+        font-size: 18px;
+    }
+    
+    .control-btn {
+        padding: 14px;
+        min-height: 45px;
+    }
+}
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+    .phone-container {
+        background: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    .settings-panel,
+    .log-controls {
+        background: #4a5568;
+        border-color: #718096;
+    }
+    
+    .form-row input,
+    .log-level-select {
+        background: #2d3748;
+        border-color: #718096;
+        color: #e2e8f0;
+    }
+    
+    .call-info {
+        background: #4a5568;
+        border-color: #718096;
+    }
+}

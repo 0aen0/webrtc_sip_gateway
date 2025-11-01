@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP Телефон</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="phone-container">
+        <!-- Статусная панель -->
+        <div class="status-panel">
+            <div class="status-item">
+                <span class="status-label">WebSocket:</span>
+                <span id="connectionStatus" class="status disconnected">Отключен</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">SIP:</span>
+                <span id="sipStatus" class="sip-status unregistered">Не зарегистрирован</span>
+            </div>
+        </div>
+
+        <!-- Панель настроек SIP -->
+        <div class="settings-panel">
+            <h3>Настройки SIP</h3>
+            <div class="settings-form">
+                <div class="form-row">
+                    <label for="sipServer">SIP Сервер:</label>
+                    <input type="text" id="sipServer" placeholder="sip.example.com">
+                </div>
+                <div class="form-row">
+                    <label for="sipPort">Порт:</label>
+                    <input type="number" id="sipPort" value="5060" placeholder="5060">
+                </div>
+                <div class="form-row">
+                    <label for="sipLogin">Логин:</label>
+                    <input type="text" id="sipLogin" placeholder="username">
+                </div>
+                <div class="form-row">
+                    <label for="sipPassword">Пароль:</label>
+                    <input type="password" id="sipPassword" placeholder="password">
+                </div>
+                <div class="form-row">
+                    <label for="sipNumber">Номер:</label>
+                    <input type="text" id="sipNumber" placeholder="1001">
+                </div>
+                
+                <div class="form-buttons">
+                    <button id="registerBtn" class="control-btn register">Регистрация</button>
+                    <button id="unregisterBtn" class="control-btn unregister" disabled>Отключение</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Информация о звонке -->
+        <div class="call-info" id="callInfo" style="display: none;">
+            <div id="remoteNumber" class="remote-number"></div>
+            <div id="callDuration" class="call-duration"></div>
+            <div id="callStatus" class="call-status"></div>
+        </div>
+
+        <!-- Поле ввода номера -->
+        <div class="dial-panel">
+            <input type="text" id="phoneNumber" placeholder="Введите номер" maxlength="20">
+            <button id="dialBtn" class="control-btn dial">Вызов</button>
+        </div>
+
+        <!-- Клавиатура DTMF -->
+        <div class="dtmf-keypad">
+            <div class="keypad-row">
+                <button class="dtmf-btn" data-digit="1">1</button>
+                <button class="dtmf-btn" data-digit="2">2</button>
+                <button class="dtmf-btn" data-digit="3">3</button>
+            </div>
+            <div class="keypad-row">
+                <button class="dtmf-btn" data-digit="4">4</button>
+                <button class="dtmf-btn" data-digit="5">5</button>
+                <button class="dtmf-btn" data-digit="6">6</button>
+            </div>
+            <div class="keypad-row">
+                <button class="dtmf-btn" data-digit="7">7</button>
+                <button class="dtmf-btn" data-digit="8">8</button>
+                <button class="dtmf-btn" data-digit="9">9</button>
+            </div>
+            <div class="keypad-row">
+                <button class="dtmf-btn" data-digit="*">*</button>
+                <button class="dtmf-btn" data-digit="0">0</button>
+                <button class="dtmf-btn" data-digit="#">#</button>
+            </div>
+        </div>
+
+        <!-- Панель управления звонком -->
+        <div class="call-controls">
+            <button id="answerBtn" class="control-btn answer" disabled>Ответить</button>
+            <button id="hangupBtn" class="control-btn hangup" disabled>Завершить</button>
+        </div>
+
+        <!-- Панель управления логированием -->
+        <div class="log-controls">
+            <div class="form-row">
+                <label for="logLevel">Уровень логов:</label>
+                <select id="logLevel" class="log-level-select">
+                    <option value="DEBUG">DEBUG</option>
+                    <option value="INFO" selected>INFO</option>
+                    <option value="WARNING">WARNING</option>
+                    <option value="ERROR">ERROR</option>
+                </select>
+            </div>
+            <button id="clearLogs" class="control-btn clear">Очистить логи</button>
+        </div>
+
+        <!-- Логи -->
+        <div class="log-panel">
+            <div class="log-header">
+                <h3>Логи:</h3>
+            </div>
+            <div id="logContainer" class="log-container"></div>
+        </div>
+    </div>
+
+    <script src="sip-phone.js"></script>
+</body>
+</html>
