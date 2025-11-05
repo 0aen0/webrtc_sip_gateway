@@ -21,7 +21,13 @@ class ConfigManager:
                 "sip_port": 5060,
                 "login": "",
                 "password": "",
-                "number": ""
+                "number": "",
+                "auto_connect": False
+            },
+            "sip_auth": {
+                "always_use_auth": True,
+                "auth_cache_ttl": 86400,
+                "retry_on_auth_failure": True
             }
         }
         
@@ -88,6 +94,10 @@ class ConfigManager:
         self.config = self.load_config()
         return self.save_config()
     
+    def get_sip_settings(self) -> Dict[str, Any]:
+        """Получить настройки SIP"""
+        return self.get("sip_settings", {})
+
     def validate_config(self) -> bool:
         """Валидация конфигурации"""
         try:

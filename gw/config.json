@@ -3,16 +3,68 @@
   "websocket_port": 8765,
   "rest_host": "localhost",
   "rest_port": 8000,
-  "log_level": "DEBUG",
-  "log_file": "../logs/gateway.log",
+  "logging": {
+    "default": {
+      "level": "INFO",
+      "file": "../logs/gateway.log",
+      "format": "[{asctime}] [{levelname}] [{name}] {direction}{message}",
+      "rotation": "1 day",
+      "retention": "30 days"
+    },
+    "modules": {
+      "sip_client": {
+        "enabled": true,
+        "level": "DEBUG",
+        "file": "../logs/sip.log",
+        "format": "[{asctime}] [{levelname}] {direction}{message}",
+        "rotation": "1 day",
+        "retention": "30 days"
+      },
+      "websocket_bridge": {
+        "enabled": true,
+        "level": "DEBUG",
+        "file": "../logs/websocket.log",
+        "format": "[{asctime}] [{levelname}] {direction}{message}",
+        "rotation": "1 day",
+        "retention": "30 days"
+      },
+      "rest_api": {
+        "enabled": true,
+        "level": "INFO",
+        "file": "../logs/api.log",
+        "format": "[{asctime}] [{levelname}] {direction}{message}",
+        "rotation": "1 day",
+        "retention": "30 days"
+      },
+      "audio_handler": {
+        "enabled": true,
+        "level": "DEBUG",
+        "file": "../logs/audio.log",
+        "format": "[{asctime}] [{levelname}] {direction}{message}",
+        "rotation": "1 day",
+        "retention": "30 days"
+      },
+      "sip_gateway": {
+        "enabled": true,
+        "level": "INFO",
+        "file": "../logs/gateway.log",
+        "format": "[{asctime}] [{levelname}] {direction}{message}",
+        "rotation": "1 day",
+        "retention": "30 days"
+      }
+    },
+    "console": {
+      "enabled": true,
+      "level": "INFO",
+      "format": "[{asctime}] [{levelname}] <cyan>{name}</cyan> {direction}{message}"
+    }
+  },
   "sip_settings": {
     "sip_server": "10.199.0.246",
     "sip_port": 5060,
     "login": "101",
     "password": "P@ssw0rd",
-    "number": "101"
-  },
-  "logging": {
-    "level": "DEBUG"
+    "number": "101",
+    "auto_connect": false
   }
 }

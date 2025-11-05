@@ -197,6 +197,7 @@ class SIPPhone {
     handleCallAnswered(payload) {
         this.isInCall = true;
         this.hasIncomingCall = false;
+        this.stopRingtone(); // Останавливаем звук звонка при ответе
         this.startCallTimer();
         this.log('Звонок установлен', 'info');
         this.updateCallControls();
@@ -207,6 +208,7 @@ class SIPPhone {
         this.isInCall = false;
         this.hasIncomingCall = false;
         this.stopCallTimer();
+        this.stopRingtone(); // Явно останавливаем звук звонка
         this.hideCallInfo();
         this.log('Звонок завершен', 'info');
         this.updateCallControls();
@@ -214,6 +216,7 @@ class SIPPhone {
 
     handleCallFailed(payload) {
         this.log(`Ошибка звонка: ${payload.reason}`, 'error');
+        this.stopRingtone(); // Останавливаем звук звонка при ошибке
         this.hideCallInfo();
         this.updateCallControls();
     }
@@ -284,12 +287,20 @@ class SIPPhone {
     }
 
     async hangupCall() {
+        // Сначала отправляем сигнал завершения на сервер
         this.sendWebSocketMessage({
             type: 'sip_hangup_call',
             payload: {}
         });
         
-        this.log('Завершение звонка', 'info');
+        // Сразу обновляем локальное состояние
+        this.isInCall = false;
+        this.hasIncomingCall = false;
+        this.stopRingtone();
+        this.stopCallTimer();
+        this.updateCallControls();
+        
+        this.log('Отправлен сигнал завершения звонка', 'info');
     }
 
     async sendDTMF(digit) {
@@ -303,6 +314,24 @@ class SIPPhone {
         } else {
             this.log('Нет активного звонка для отправки DTMF', 'warning');
         }
+    }
+
+    async sendMessage(toNumber, content) {
+        if (!this.isRegistered) {
+            this.log('Не зарегистрирован для отправки сообщений', 'warning');
+            return false;
+        }
+
+        this.sendWebSocketMessage({
+            type: 'sip_send_message',
+            payload: {
+                to_number: toNumber,
+                content: content
+            }
+        });
+        
+        this.log(`Отправка сообщения на номер: ${toNumber}`, 'info');
+        return true;
     }
 
     async changeLogLevel() {

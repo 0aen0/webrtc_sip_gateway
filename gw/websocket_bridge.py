@@ -52,10 +52,10 @@ class WebSocketBridge:
         self.connected_clients.add(websocket)
         
         client_info = f"{websocket.remote_address[0]}:{websocket.remote_address[1]}"
-        self.logger.info(f"Новое WebSocket подключение: {client_info} (ID: {client_id})")
+        self.logger.incoming_info(f"Новое WebSocket подключение: {client_info} (ID: {client_id})")
         
         if self.logger.isEnabledFor(logging.DEBUG):
-            self.logger.debug(f"WebSocket детали подключения: path={path}, headers={websocket.request_headers}")
+            self.logger.incoming_debug(f"WebSocket детали подключения: path={path}, headers={websocket.request_headers}")
         
         try:
             # Отправляем текущий статус SIP
@@ -66,13 +66,13 @@ class WebSocketBridge:
                 await self.handle_message(message, websocket, client_info)
                 
         except ConnectionClosed:
-            self.logger.info(f"WebSocket соединение закрыто: {client_info}")
+            self.logger.incoming_info(f"WebSocket соединение закрыто: {client_info}")
         except Exception as e:
-            self.logger.error(f"Ошибка в WebSocket соединении {client_info}: {e}")
+            self.logger.incoming_error(f"Ошибка в WebSocket соединении {client_info}: {e}")
         finally:
             if websocket in self.connected_clients:
                 self.connected_clients.remove(websocket)
-            self.logger.info(f"WebSocket подключение завершено: {client_info}")
+            self.logger.incoming_info(f"WebSocket подключение завершено: {client_info}")
             
     async def handle_message(self, message: str, websocket: WebSocketServerProtocol, client_info: str):
         """Обработка сообщения от клиента"""
@@ -81,10 +81,10 @@ class WebSocketBridge:
             message_type = data.get("type")
             payload = data.get("payload", {})
             
+            self.logger.incoming_info(f"WebSocket сообщение от {client_info}: {message_type}")
+            
             if self.logger.isEnabledFor(logging.DEBUG):
-                self.logger.debug(f"Получено сообщение от {client_info}: type={message_type}, payload={payload}")
-            else:
-                self.logger.info(f"Получено сообщение: {message_type} от {client_info}")
+                self.logger.incoming_debug(f"Детали сообщения от {client_info}: type={message_type}, payload={payload}")
             
             # Маршрутизация сообщений
             handlers = {
@@ -94,6 +94,7 @@ class WebSocketBridge:
                 "sip_answer_call": self.handle_answer_call,
                 "sip_hangup_call": self.handle_hangup_call,
                 "sip_send_dtmf": self.handle_send_dtmf,
+                "sip_send_message": self.handle_send_message,
                 "get_status": self.handle_get_status,
                 "ping": self.handle_ping
             }
@@ -102,13 +103,14 @@ class WebSocketBridge:
             if handler:
                 await handler(payload, websocket, client_info)
             else:
+                self.logger.incoming_warning(f"Неизвестный тип сообщения от {client_info}: {message_type}")
                 await self.send_error(websocket, f"Неизвестный тип сообщения: {message_type}")
                 
         except json.JSONDecodeError as e:
-            self.logger.error(f"Ошибка JSON от {client_info}: {e}, сообщение: {message}")
+            self.logger.incoming_error(f"Ошибка JSON от {client_info}: {e}, сообщение: {message}")
             await self.send_error(websocket, f"Ошибка JSON: {e}")
         except Exception as e:
-            self.logger.error(f"Ошибка обработки сообщения от {client_info}: {e}")
+            self.logger.incoming_error(f"Ошибка обработки сообщения от {client_info}: {e}")
             await self.send_error(websocket, f"Внутренняя ошибка: {e}")
     
     # === Обработчики SIP сообщений ===
@@ -119,12 +121,14 @@ class WebSocketBridge:
             required_fields = ["sip_server", "sip_port", "login", "password", "number"]
             for field in required_fields:
                 if field not in payload:
-                    self.logger.warning(f"Отсутствует обязательное поле {field} в запросе от {client_info}")
+                    self.logger.incoming_warning(f"Отсутствует обязательное поле {field} в запросе от {client_info}")
                     await self.send_error(websocket, f"Отсутствует обязательное поле: {field}")
                     return
             
+            self.logger.incoming_info(f"Запрос регистрации SIP от {client_info}: server={payload['sip_server']}:{payload['sip_port']}")
+            
             if self.logger.isEnabledFor(logging.DEBUG):
-                self.logger.debug(f"Регистрация SIP от {client_info}: server={payload['sip_server']}:{payload['sip_port']}, login={payload['login']}")
+                self.logger.incoming_debug(f"Детали регистрации SIP от {client_info}: login={payload['login']}, number={payload['number']}")
             
             # Передаем настройки в SIP клиент
             if hasattr(self, 'sip_client') and self.sip_client:
@@ -137,34 +141,34 @@ class WebSocketBridge:
                 )
                 
                 if success:
-                    self.logger.info(f"Успешная регистрация SIP для {client_info}")
+                    self.logger.outgoing_info(f"Успешная регистрация SIP для {client_info}")
                     await self.send_success(websocket, "SIP регистрация запущена")
                 else:
-                    self.logger.error(f"Ошибка SIP регистрации для {client_info}")
+                    self.logger.outgoing_error(f"Ошибка SIP регистрации для {client_info}")
                     await self.send_error(websocket, "Ошибка SIP регистрации")
             else:
-                self.logger.error(f"SIP клиент не инициализирован для запроса от {client_info}")
+                self.logger.outgoing_error(f"SIP клиент не инициализирован для запроса от {client_info}")
                 await self.send_error(websocket, "SIP клиент не инициализирован")
                 
         except Exception as e:
-            self.logger.error(f"Ошибка обработки SIP регистрации от {client_info}: {e}")
+            self.logger.outgoing_error(f"Ошибка обработки SIP регистрации от {client_info}: {e}")
             await self.send_error(websocket, f"Ошибка регистрации: {e}")
     
     async def handle_sip_unregister(self, payload: Dict, websocket: WebSocketServerProtocol, client_info: str):
         """Отмена регистрации на SIP сервере"""
         try:
-            self.logger.info(f"Запрос отмены регистрации SIP от {client_info}")
+            self.logger.incoming_info(f"Запрос отмены регистрации SIP от {client_info}")
             
             if hasattr(self, 'sip_client') and self.sip_client:
                 await self.sip_client.disconnect()
-                self.logger.info(f"Отмена регистрации SIP выполнена для {client_info}")
+                self.logger.outgoing_info(f"Отмена регистрации SIP выполнена для {client_info}")
                 await self.send_success(websocket, "Отмена регистрации SIP выполнена")
             else:
-                self.logger.error(f"SIP клиент не инициализирован для запроса отмены регистрации от {client_info}")
+                self.logger.outgoing_error(f"SIP клиент не инициализирован для запроса отмены регистрации от {client_info}")
                 await self.send_error(websocket, "SIP клиент не инициализирован")
                 
         except Exception as e:
-            self.logger.error(f"Ошибка отмены регистрации SIP от {client_info}: {e}")
+            self.logger.outgoing_error(f"Ошибка отмены регистрации SIP от {client_info}: {e}")
             await self.send_error(websocket, f"Ошибка отмены регистрации: {e}")
     
     async def handle_make_call(self, payload: Dict, websocket: WebSocketServerProtocol, client_info: str):
@@ -172,68 +176,68 @@ class WebSocketBridge:
         try:
             number = payload.get("number")
             if not number:
-                self.logger.warning(f"Не указан номер для вызова от {client_info}")
+                self.logger.incoming_warning(f"Не указан номер для вызова от {client_info}")
                 await self.send_error(websocket, "Не указан номер для вызова")
                 return
                 
-            self.logger.info(f"Запрос вызова от {client_info}: номер {number}")
+            self.logger.incoming_info(f"Запрос вызова от {client_info}: номер {number}")
                 
             if hasattr(self, 'sip_client') and self.sip_client and self.sip_client.is_registered:
                 success = await self.sip_client.make_call(number)
                 if success:
-                    self.logger.info(f"Вызов установлен для {client_info}: {number}")
+                    self.logger.outgoing_info(f"Вызов установлен для {client_info}: {number}")
                     await self.send_success(websocket, f"Вызов номера {number}")
                 else:
-                    self.logger.error(f"Ошибка вызова для {client_info}: {number}")
+                    self.logger.outgoing_error(f"Ошибка вызова для {client_info}: {number}")
                     await self.send_error(websocket, f"Ошибка вызова номера {number}")
             else:
-                self.logger.warning(f"SIP клиент не зарегистрирован для запроса вызова от {client_info}")
+                self.logger.outgoing_warning(f"SIP клиент не зарегистрирован для запроса вызова от {client_info}")
                 await self.send_error(websocket, "SIP клиент не зарегистрирован")
                 
         except Exception as e:
-            self.logger.error(f"Ошибка совершения вызова от {client_info}: {e}")
+            self.logger.outgoing_error(f"Ошибка совершения вызова от {client_info}: {e}")
             await self.send_error(websocket, f"Ошибка вызова: {e}")
     
     async def handle_answer_call(self, payload: Dict, websocket: WebSocketServerProtocol, client_info: str):
         """Ответ на входящий звонка"""
         try:
-            self.logger.info(f"Запрос ответа на звонок от {client_info}")
+            self.logger.incoming_info(f"Запрос ответа на звонок от {client_info}")
             
             if hasattr(self, 'sip_client') and self.sip_client:
                 success = await self.sip_client.answer_call()
                 if success:
-                    self.logger.info(f"Звонок принят для {client_info}")
+                    self.logger.outgoing_info(f"Звонок принят для {client_info}")
                     await self.send_success(websocket, "Звонок принят")
                 else:
-                    self.logger.error(f"Ошибка приема звонка для {client_info}")
+                    self.logger.outgoing_error(f"Ошибка приема звонка для {client_info}")
                     await self.send_error(websocket, "Ошибка приема звонка")
             else:
-                self.logger.error(f"SIP клиент не инициализирован для запроса ответа от {client_info}")
+                self.logger.outgoing_error(f"SIP клиент не инициализирован для запроса ответа от {client_info}")
                 await self.send_error(websocket, "SIP клиент не инициализирован")
                 
         except Exception as e:
-            self.logger.error(f"Ошибка ответа на звонок от {client_info}: {e}")
+            self.logger.outgoing_error(f"Ошибка ответа на звонок от {client_info}: {e}")
             await self.send_error(websocket, f"Ошибка ответа: {e}")
     
     async def handle_hangup_call(self, payload: Dict, websocket: WebSocketServerProtocol, client_info: str):
         """Завершение звонка"""
         try:
-            self.logger.info(f"Запрос завершения звонка от {client_info}")
+            self.logger.incoming_info(f"Запрос завершения звонка от {client_info}")
             
             if hasattr(self, 'sip_client') and self.sip_client:
                 success = await self.sip_client.hangup_call()
                 if success:
-                    self.logger.info(f"Звонок завершен для {client_info}")
+                    self.logger.outgoing_info(f"Звонок завершен для {client_info}")
                     await self.send_success(websocket, "Звонок завершен")
                 else:
-                    self.logger.error(f"Ошибка завершения звонка для {client_info}")
+                    self.logger.outgoing_error(f"Ошибка завершения звонка для {client_info}")
                     await self.send_error(websocket, "Ошибка завершения звонка")
             else:
-                self.logger.error(f"SIP клиент не инициализирован для запроса завершения от {client_info}")
+                self.logger.outgoing_error(f"SIP клиент не инициализирован для запроса завершения от {client_info}")
                 await self.send_error(websocket, "SIP клиент не инициализирован")
                 
         except Exception as e:
-            self.logger.error(f"Ошибка завершения звонка от {client_info}: {e}")
+            self.logger.outgoing_error(f"Ошибка завершения звонка от {client_info}: {e}")
             await self.send_error(websocket, f"Ошибка завершения: {e}")
     
     async def handle_send_dtmf(self, payload: Dict, websocket: WebSocketServerProtocol, client_info: str):
@@ -241,38 +245,65 @@ class WebSocketBridge:
         try:
             digit = payload.get("digit")
             if not digit:
-                self.logger.warning(f"Не указана DTMF цифра от {client_info}")
+                self.logger.incoming_warning(f"Не указана DTMF цифра от {client_info}")
                 await self.send_error(websocket, "Не указана DTMF цифра")
                 return
                 
-            self.logger.info(f"Запрос отправки DTMF от {client_info}: {digit}")
+            self.logger.incoming_info(f"Запрос отправки DTMF от {client_info}: {digit}")
                 
             if hasattr(self, 'sip_client') and self.sip_client:
                 success = await self.sip_client.send_dtmf(digit)
                 if success:
-                    self.logger.info(f"DTMF отправлен для {client_info}: {digit}")
+                    self.logger.outgoing_info(f"DTMF отправлен для {client_info}: {digit}")
                     await self.send_success(websocket, f"DTMF отправлен: {digit}")
                 else:
-                    self.logger.error(f"Ошибка отправки DTMF для {client_info}: {digit}")
+                    self.logger.outgoing_error(f"Ошибка отправки DTMF для {client_info}: {digit}")
                     await self.send_error(websocket, f"Ошибка отправки DTMF: {digit}")
             else:
-                self.logger.error(f"SIP клиент не инициализирован для запроса DTMF от {client_info}")
+                self.logger.outgoing_error(f"SIP клиент не инициализирован для запроса DTMF от {client_info}")
                 await self.send_error(websocket, "SIP клиент не инициализирован")
                 
         except Exception as e:
-            self.logger.error(f"Ошибка отправки DTMF от {client_info}: {e}")
+            self.logger.outgoing_error(f"Ошибка отправки DTMF от {client_info}: {e}")
             await self.send_error(websocket, f"Ошибка DTMF: {e}")
+
+    async def handle_send_message(self, payload: Dict, websocket: WebSocketServerProtocol, client_info: str):
+        """Отправка SIP MESSAGE с авторизацией"""
+        try:
+            to_number = payload.get("to_number")
+            content = payload.get("content")
+            
+            if not to_number or not content:
+                self.logger.incoming_warning(f"Не указан номер или содержимое сообщения от {client_info}")
+                await self.send_error(websocket, "Не указан номер или содержимое сообщения")
+                return
+            
+            self.logger.incoming_info(f"Запрос отправки сообщения от {client_info}: номер {to_number}")
+            
+            if hasattr(self, 'sip_client') and self.sip_client and self.sip_client.is_registered:
+                success = await self.sip_client.send_message(to_number, content)
+                if success:
+                    self.logger.outgoing_info(f"Сообщение отправлено для {client_info}: {to_number}")
+                    await self.send_success(websocket, f"Сообщение отправлено на номер {to_number}")
+                else:
+                    self.logger.outgoing_error(f"Ошибка отправки сообщения для {client_info}: {to_number}")
+                    await self.send_error(websocket, f"Ошибка отправки сообщения на номер {to_number}")
+            else:
+                self.logger.outgoing_warning(f"SIP клиент не зарегистрирован для отправки сообщения от {client_info}")
+                await self.send_error(websocket, "SIP клиент не зарегистрирован")
+                
+        except Exception as e:
+            self.logger.outgoing_error(f"Ошибка отправки сообщения от {client_info}: {e}")
+            await self.send_error(websocket, f"Ошибка отправки сообщения: {e}")
     
     async def handle_get_status(self, payload: Dict, websocket: WebSocketServerProtocol, client_info: str):
         """Запрос статуса"""
-        if self.logger.isEnabledFor(logging.DEBUG):
-            self.logger.debug(f"Запрос статуса от {client_info}")
+        self.logger.incoming_info(f"Запрос статуса от {client_info}")
         await self.send_status_update(websocket)
     
     async def handle_ping(self, payload: Dict, websocket: WebSocketServerProtocol, client_info: str):
         """Обработка ping-сообщения"""
-        if self.logger.isEnabledFor(logging.DEBUG):
-            self.logger.debug(f"Ping от {client_info}")
+        self.logger.incoming_debug(f"Ping от {client_info}")
         await self.send_message(websocket, {
             "type": "pong",
             "payload": {"timestamp": payload.get("timestamp")}
@@ -286,27 +317,29 @@ class WebSocketBridge:
             message_str = json.dumps(message, ensure_ascii=False)
             await websocket.send(message_str)
             
+            message_type = message.get('type', 'unknown')
+            self.logger.outgoing_info(f"WebSocket сообщение {message_type}")
+            
             if self.logger.isEnabledFor(logging.DEBUG):
                 client_info = f"{websocket.remote_address[0]}:{websocket.remote_address[1]}"
-                self.logger.debug(f"Отправка сообщения {message['type']} для {client_info}")
+                self.logger.outgoing_debug(f"Детали сообщения для {client_info}: {message}")
                 
         except ConnectionClosed:
-            self.logger.warning("Попытка отправки на закрытое соединение")
+            self.logger.outgoing_warning("Попытка отправки на закрытое соединение")
         except Exception as e:
-            self.logger.error(f"Ошибка отправки сообщения: {e}")
+            self.logger.outgoing_error(f"Ошибка отправки сообщения: {e}")
     
     async def broadcast_message(self, message: Dict):
         """Широковещательная отправка сообщения всем клиентам"""
         if not self.connected_clients:
             if self.logger.isEnabledFor(logging.DEBUG):
-                self.logger.debug("Нет подключенных клиентов для широковещательной отправки")
+                self.logger.outgoing_debug("Нет подключенных клиентов для широковещательной отправки")
             return
             
         disconnected_clients = []
         message_type = message.get("type", "unknown")
         
-        if self.logger.isEnabledFor(logging.DEBUG):
-            self.logger.debug(f"Широковещательная отправка {message_type} для {len(self.connected_clients)} клиентов")
+        self.logger.outgoing_info(f"Широковещательная отправка {message_type} для {len(self.connected_clients)} клиентов")
         
         for client in self.connected_clients:
             try:
@@ -314,14 +347,14 @@ class WebSocketBridge:
             except ConnectionClosed:
                 disconnected_clients.append(client)
             except Exception as e:
-                self.logger.error(f"Ошибка широковещательной отправки: {e}")
+                self.logger.outgoing_error(f"Ошибка широковещательной отправки: {e}")
                 disconnected_clients.append(client)
         
         # Удаляем отключенных клиентов
         for client in disconnected_clients:
             if client in self.connected_clients:
                 self.connected_clients.remove(client)
-                self.logger.info(f"Удален отключенный клиент из широковещательной рассылки")
+                self.logger.outgoing_info(f"Удален отключенный клиент из широковещательной рассылки")
     
     async def send_success(self, websocket: WebSocketServerProtocol, message: str):
         """Отправка сообщения об успехе"""
@@ -354,8 +387,7 @@ class WebSocketBridge:
             }
         }
         
-        if self.logger.isEnabledFor(logging.DEBUG):
-            self.logger.debug(f"Отправка статуса: registered={self.sip_registered}, in_call={getattr(sip_client, 'active_call', False)}, clients={len(self.connected_clients)}")
+        self.logger.outgoing_info(f"Отправка статуса: registered={self.sip_registered}, in_call={getattr(sip_client, 'active_call', False)}, clients={len(self.connected_clients)}")
         
         if websocket:
             await self.send_message(websocket, status_message)
@@ -367,7 +399,7 @@ class WebSocketBridge:
     async def notify_sip_registered(self):
         """Уведомление о успешной регистрации SIP"""
         self.sip_registered = True
-        self.logger.info("Уведомление о регистрации SIP отправлено всем клиентам")
+        self.logger.outgoing_info("Уведомление о регистрации SIP отправлено всем клиентам")
         await self.broadcast_message({
             "type": "sip_registered",
             "payload": {"message": "Успешная регистрация на SIP сервере"}
@@ -377,7 +409,7 @@ class WebSocketBridge:
     async def notify_sip_unregistered(self):
         """Уведомление о снятии регистрации SIP"""
         self.sip_registered = False
-        self.logger.info("Уведомление о снятии регистрации SIP отправлено всем клиентам")
+        self.logger.outgoing_info("Уведомление о снятии регистрации SIP отправлено всем клиентам")
         await self.broadcast_message({
             "type": "sip_unregistered",
             "payload": {"message": "Регистрация SIP сброшена"}
@@ -386,7 +418,7 @@ class WebSocketBridge:
     
     async def notify_incoming_call(self, caller_number: str):
         """Уведомление о входящем звонке"""
-        self.logger.info(f"Уведомление о входящем звонке от {caller_number} отправлено всем клиентам")
+        self.logger.outgoing_info(f"Уведомление о входящем звонке от {caller_number} отправлено всем клиентам")
         await self.broadcast_message({
             "type": "incoming_call",
             "payload": {
@@ -397,7 +429,7 @@ class WebSocketBridge:
     
     async def notify_call_answered(self):
         """Уведомление о принятом звонке"""
-        self.logger.info("Уведомление о принятом звонке отправлено всем клиентам")
+        self.logger.outgoing_info("Уведомление о принятом звонке отправлено всем клиентам")
         await self.broadcast_message({
             "type": "call_answered",
             "payload": {
@@ -408,7 +440,7 @@ class WebSocketBridge:
     
     async def notify_call_ended(self, reason: str = ""):
         """Уведомление о завершении звонка"""
-        self.logger.info("Уведомление о завершении звонка отправлено всем клиентам")
+        self.logger.outgoing_info("Уведомление о завершении звонка отправлено всем клиентам")
         await self.broadcast_message({
             "type": "call_ended",
             "payload": {
@@ -420,12 +452,23 @@ class WebSocketBridge:
     
     async def notify_call_failed(self, reason: str):
         """Уведомление о неудачном звонке"""
-        self.logger.error(f"Уведомление о неудачном звонке: {reason}")
+        self.logger.outgoing_error(f"Уведомление о неудачном звонке: {reason}")
         await self.broadcast_message({
             "type": "call_failed",
             "payload": {
                 "message": "Ошибка звонка",
                 "reason": reason,
+                "timestamp": asyncio.get_event_loop().time()
+            }
+        })
+
+    async def notify_call_ringing(self):
+        """Уведомление о том, что абонент звонит (получен 180 Ringing)"""
+        self.logger.outgoing_info("Уведомление о звонке абонента отправлено всем клиентам")
+        await self.broadcast_message({
+            "type": "call_ringing", 
+            "payload": {
+                "message": "Абонент звонит",
                 "timestamp": asyncio.get_event_loop().time()
             }
         })
@@ -447,13 +490,35 @@ class WebSocketBridge:
                 clients_info.append("unknown")
         return clients_info
 
-    async def notify_call_ringing(self):
-        """Уведомление о том, что абонент звонит (получен 180 Ringing)"""
-        self.logger.info("Уведомление о звонке абонента отправлено всем клиентам")
-        await self.broadcast_message({
-            "type": "call_ringing", 
-            "payload": {
-                "message": "Абонент звонит",
-                "timestamp": asyncio.get_event_loop().time()
-            }
-        })
+    def get_websocket_status(self) -> Dict:
+        """Получить статус WebSocket сервера"""
+        return {
+            "host": self.host,
+            "port": self.port,
+            "connected_clients": len(self.connected_clients),
+            "sip_registered": self.sip_registered,
+            "sip_connected": self.sip_connected,
+            "clients_info": self.get_connection_info()
+        }
+
+    async def close_all_connections(self):
+        """Закрыть все WebSocket соединения"""
+        if not self.connected_clients:
+            return
+            
+        self.logger.info(f"Закрытие всех WebSocket соединений ({len(self.connected_clients)} клиентов)")
+        
+        disconnected_clients = []
+        for client in self.connected_clients:
+            try:
+                await client.close()
+                disconnected_clients.append(client)
+            except Exception as e:
+                self.logger.error(f"Ошибка закрытия соединения с клиентом: {e}")
+        
+        # Удаляем закрытые соединения
+        for client in disconnected_clients:
+            if client in self.connected_clients:
+                self.connected_clients.remove(client)
+        
+        self.logger.info(f"Закрыто {len(disconnected_clients)} WebSocket соединений")

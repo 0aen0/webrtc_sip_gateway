@@ -1,0 +1,6 @@
+__pycache__/
+MicroSIP/
+other/
+*.pyc
+.env
+venv/
